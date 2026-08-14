@@ -1,15 +1,19 @@
+import os
 import base64
 import requests
+from dotenv import load_dotenv
 
-# Best practice: In production, this would be loaded from environment variables (.env)
-VT_API_KEY = "INSERT_YOUR_VIRUSTOTAL_KEY_HERE"
+# Load environment variables
+load_dotenv()
+VT_API_KEY = os.getenv("VT_API_KEY")
+print(f"DEBUG - Loaded Key: {VT_API_KEY}")
 
 def calculate_url_risk(url):
     """
     Scans a URL against VirusTotal and calculates a risk percentage.
     """
-    if not VT_API_KEY or VT_API_KEY == "YOUR_VIRUSTOTAL_API_KEY":
-        return 0, "API key not configured"
+    if not VT_API_KEY:
+        return 0, "API key not configured in environment"
 
     # VirusTotal v3 requires the URL to be base64url encoded without the '=' padding
     url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
@@ -43,15 +47,16 @@ def calculate_url_risk(url):
             risk_percentage = (bad_flags / total_engines) * 100
             
             return round(risk_percentage, 2), stats
+            
         elif response.status_code == 404:
-            return 0, "URL never scanned by VirusTotal before"
+            # An unseen URL in a security context should trigger caution, not assumed safety
+            return 15.0, "Caution: URL has never been scanned by VirusTotal before"
         else:
             return 0, f"API Error: {response.status_code}"
             
     except Exception as e:
         return 0, f"Connection error: {str(e)}"
 
-# Test the engine directly
 if __name__ == '__main__':
     test_url = "http://google.com"
     print(f"Scanning: {test_url}")
