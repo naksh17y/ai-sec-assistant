@@ -51,9 +51,9 @@ def chat_with_assistant(prompt, recent_history, context):
     try:
         # Using the evergreen alias to bypass version locking!
         response = client.models.generate_content(
-            model='gemini-flash',
+            model='gemini-3.5-flash',
             contents=full_prompt
-        )
+        ) 
         return response.text
     except Exception as e:
         return f"Error communicating with AI: {str(e)}"
