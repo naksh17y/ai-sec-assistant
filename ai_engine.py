@@ -51,7 +51,7 @@ def chat_with_assistant(prompt, recent_history, context):
     try:
         # Fixed the model name to a valid Gemini version
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-2.5-flash',
             contents=full_prompt
         )
         return response.text
