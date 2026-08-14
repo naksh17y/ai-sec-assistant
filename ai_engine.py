@@ -26,47 +26,39 @@ def get_gemini_client():
         
     return genai.Client(api_key=api_key)
 
-# --- KEEP YOUR OTHER CHATBOT FUNCTIONS DOWN HERE ---
-def generate_response(prompt):
+def chat_with_assistant(prompt, recent_history, context):
+    """Generates a response from the AI assistant using the updated SDK."""
+    # Grab the securely authenticated client
     client = get_gemini_client()
-    response = client.models.generate_content(
-        model='gemini-3.5-flash',
-        contents=prompt
-    )
-    return response.text
     
-def chat_with_assistant(user_message, history="", schedule_context=""):
-    """A general purpose chatbot function that maintains context and schedule awareness."""
-    if not GEMINI_API_KEY:
-        return "API key not configured in environment."
-
-    prompt = f"""
-    You are an elite Cybersecurity Executive Assistant. 
+    # Format the context and history for the AI
+    system_context = f"System Context (Data/Schedule):\n{context}\n\n" if context else ""
     
-    Here is the user's upcoming schedule:
-    {schedule_context if schedule_context else "No schedule synced yet."}
+    history_text = "Recent Conversation History:\n"
+    if recent_history:
+        for msg in recent_history:
+            role = "User" if msg.get("role") == "user" else "Assistant"
+            history_text += f"{role}: {msg.get('content')}\n"
+    else:
+        history_text += "No recent history.\n"
+        
+    full_prompt = f"{system_context}{history_text}\nUser: {prompt}\nAssistant:"
     
-    Use this recent conversation history for context (if any):
-    {history}
-
-    User: {user_message}
-    Assistant:
-    """
-
     try:
+        # Call the new gemini-3.5-flash model
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=prompt,
+            model='gemini-3.5-flash',
+            contents=full_prompt
         )
-        return response.text.strip()
+        return response.text
     except Exception as e:
         return f"Error communicating with AI: {str(e)}"
-    
+
 if __name__ == '__main__':
     test_sender = "hr@dreamcompany.com"
     test_subject = "Interview Request: Cybersecurity Analyst"
     test_body = "Hi, we loved your resume and your IoT IDS project. Are you available this Thursday at 2 PM IST for a technical round?"
     
     print("Testing AI Engine...")
-    result = analyze_email(test_sender, test_subject, test_body)
+    result = chat_with_assistant(test_sender, test_subject, test_body)
     print(json.dumps(result, indent=4))
