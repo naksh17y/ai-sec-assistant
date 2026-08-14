@@ -1,11 +1,11 @@
 import os
+import datetime
 import streamlit as st
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
-# Adjust this if your code uses a different calendar scope
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
 def authenticate_calendar():
@@ -36,7 +36,7 @@ def authenticate_calendar():
             
     # 3. Local Environment: Fallback to the local JSON files
     else:
-        # Change 'token_calendar.json' to 'token.json' if you only use one combined token file locally
+        # If your local token is just named 'token.json', change this variable to match
         token_file = 'token_calendar.json' 
         
         if os.path.exists(token_file):
@@ -54,4 +54,18 @@ def authenticate_calendar():
     # Build and return the service
     return build('calendar', 'v3', credentials=creds)
 
-# --- KEEP YOUR OTHER CALENDAR FUNCTIONS DOWN HERE (like fetch_events) ---
+def fetch_upcoming_events(service, max_results=10):
+    """Fetches the upcoming events from the user's primary Google Calendar."""
+    # Call the Calendar API to get upcoming events
+    now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+    
+    events_result = service.events().list(
+        calendarId='primary', 
+        timeMin=now,
+        maxResults=max_results, 
+        singleEvents=True,
+        orderBy='startTime'
+    ).execute()
+    
+    events = events_result.get('items', [])
+    return events
