@@ -28,18 +28,15 @@ def get_gemini_client():
     return genai.Client(api_key=api_key)
 
 def chat_with_assistant(prompt, recent_history, context):
-    """Generates a response from the AI assistant using the updated SDK."""
-    # Grab the securely authenticated client
+    """Generates a response from the AI assistant with automatic fallback for high demand."""
     client = get_gemini_client()
     
-    # Format the context and history for the AI
+    # Format context and history
     system_context = f"System Context (Data/Schedule):\n{context}\n\n" if context else ""
     
     history_text = "Recent Conversation History:\n"
-    # Ensure recent_history is a list before iterating to prevent crashes
     if recent_history and isinstance(recent_history, list):
         for msg in recent_history:
-            # Safely handle dictionaries
             if isinstance(msg, dict):
                 role = "User" if msg.get("role") == "user" else "Assistant"
                 history_text += f"{role}: {msg.get('content')}\n"
@@ -48,15 +45,27 @@ def chat_with_assistant(prompt, recent_history, context):
         
     full_prompt = f"{system_context}{history_text}\nUser: {prompt}\nAssistant:"
     
-    try:
-        # Using the evergreen alias to bypass version locking!
-        response = client.models.generate_content(
-            model='gemini-3.5-flash',
-            contents=full_prompt
-        ) 
-        return response.text
-    except Exception as e:
-        return f"Error communicating with AI: {str(e)}"
+    # Models to try in order if Google's servers are overloaded (503)
+    candidate_models = [
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-2.5-flash-lite'
+    ]
+    
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=full_prompt
+            )
+            return response.text
+        except Exception as e:
+            last_error = e
+            # If it's a temporary 503 overload, loop to the next model
+            continue
+
+    return f"Error communicating with AI: {str(last_error)}"
 
 if __name__ == '__main__':
     # Fixed the test parameters to match what the function actually expects
