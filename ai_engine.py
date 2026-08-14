@@ -47,12 +47,8 @@ def chat_with_assistant(prompt, recent_history, context):
         history_text += "No recent history.\n"
         
     full_prompt = f"{system_context}{history_text}\nUser: {prompt}\nAssistant:"
-
-    # Print all models your key is allowed to use
-    for m in client.models.list():
-        if "generateContent" in m.supported_actions:
-            print(m.name)
-   try:
+    
+    try:
         # Using the evergreen alias to bypass version locking!
         response = client.models.generate_content(
             model='gemini-flash',
