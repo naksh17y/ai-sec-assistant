@@ -1,4 +1,5 @@
 import os
+import json
 import streamlit as st
 from google import genai
 from dotenv import load_dotenv
@@ -35,19 +36,22 @@ def chat_with_assistant(prompt, recent_history, context):
     system_context = f"System Context (Data/Schedule):\n{context}\n\n" if context else ""
     
     history_text = "Recent Conversation History:\n"
-    if recent_history:
+    # Ensure recent_history is a list before iterating to prevent crashes
+    if recent_history and isinstance(recent_history, list):
         for msg in recent_history:
-            role = "User" if msg.get("role") == "user" else "Assistant"
-            history_text += f"{role}: {msg.get('content')}\n"
+            # Safely handle dictionaries
+            if isinstance(msg, dict):
+                role = "User" if msg.get("role") == "user" else "Assistant"
+                history_text += f"{role}: {msg.get('content')}\n"
     else:
         history_text += "No recent history.\n"
         
     full_prompt = f"{system_context}{history_text}\nUser: {prompt}\nAssistant:"
     
     try:
-        # Call the new gemini-3.5-flash model
+        # Fixed the model name to a valid Gemini version
         response = client.models.generate_content(
-            model='gemini-3.5-flash',
+            model='gemini-1.5-flash',
             contents=full_prompt
         )
         return response.text
@@ -55,10 +59,11 @@ def chat_with_assistant(prompt, recent_history, context):
         return f"Error communicating with AI: {str(e)}"
 
 if __name__ == '__main__':
-    test_sender = "hr@dreamcompany.com"
-    test_subject = "Interview Request: Cybersecurity Analyst"
-    test_body = "Hi, we loved your resume and your IoT IDS project. Are you available this Thursday at 2 PM IST for a technical round?"
+    # Fixed the test parameters to match what the function actually expects
+    test_prompt = "Hi, I am preparing for a technical round for a Cybersecurity Analyst role. Any tips?"
+    test_history = [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there! How can I help you today?"}]
+    test_context = "User is Nakshatra Kale. They recently built an IoT Intrusion Detection System."
     
     print("Testing AI Engine...")
-    result = chat_with_assistant(test_sender, test_subject, test_body)
-    print(json.dumps(result, indent=4))
+    result = chat_with_assistant(test_prompt, test_history, test_context)
+    print(result)
